@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromosome Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-image: url('https://st2.depositphotos.com/1229718/7251/i/380/depositphotos_72511499-stock-photo-chromosomes.jpg');
+            background-size: cover;
+            color: #fff; /* Light color for the text */
+        }
+        .drop-zone {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 50px;
+            border: 2px dashed #fff; /* Light border color */
+            border-radius: 10px;
+            background-color: rgba(0, 0, 0, 0.5); /* Darker semi-transparent background */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #f7f7f7; /* Even lighter when dragging over */
+            background-color: rgba(255, 255, 255, 0.2); /* Lighter background on dragover */
+        }
+        .drop-zone p {
+            margin: 0;
+            font-size: 20px;
+            color: #ddd; /* Light color for the text inside the drop zone */
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333; /* Dark color for the result text */
+            background-color: rgba(255, 255, 255, 0.8); /* Light background for result box */
+            display: inline-block;
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chromosome Classifier</h1>
+    <div class="drop-zone" id="drop-zone">
+        <p>Drag & Drop an image here, or click to select</p>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const resultDiv = document.getElementById('result');
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = event.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        dropZone.addEventListener('click', () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.onchange = () => {
+                handleFiles(fileInput.files);
+            };
+            fileInput.click();
+        });
+
+        function handleFiles(files) {
+            const formData = new FormData();
+            formData.append('file', files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultDiv.textContent = `Error: ${data.error}`;
+                } else {
+                    if (data.prediction.toLowerCase() === 'abnormal') {
+                        resultDiv.textContent = 'The structure of the chromosome is detected as abnormal and may be associated with a syndrome.';
+                    } else if (data.prediction.toLowerCase() === 'normal') {
+                        resultDiv.textContent = 'The structure of the chromosome is normal.';
+                    } else {
+                        resultDiv.textContent = `Prediction: ${data.prediction}`;
+                    }
+                }
+            })
+            .catch(error => {
+                resultDiv.textContent = `Error: ${error}`;
+            });
+        }
+    </script>
+</body>
+</html>
